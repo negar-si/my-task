@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>آزمون یادگیری</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;font-family:'Vazirmatn',Tahoma,sans-serif;background:#f6f6f4;color:#222;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.9}
+  #app{width:min(94vw,760px);padding:16px}
+  button{font:inherit;font-size:1.1rem;padding:.6em 1.8em;margin:.4em;border:0;border-radius:10px;background:#2b5fd9;color:#fff;cursor:pointer}
+  button.alt{background:#666}
+  button.opt{display:block;width:100%;background:#fff;color:#222;border:2px solid #bbb;font-size:1.5rem}
+  button.opt:hover{border-color:#2b5fd9}
+  input[type=text]{font:inherit;font-size:1.2rem;padding:.5em;border:2px solid #bbb;border-radius:8px;text-align:center}
+  img.stim{max-width:100%;max-height:55vh;border-radius:8px}
+  .big{font-size:1.6rem}
+  .fb{font-size:2rem;font-weight:bold}
+  .ok{color:#1a8a3a}.bad{color:#c0392b}
+  .small{font-size:.9rem;color:#666}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="app">در حال بارگذاری…</div>
+
+<script>
+/* ===================== تنظیمات (فقط این بخش را در صورت نیاز عوض کنید) ===================== */
+const CONFIG = {
+  STIMULI_FILE: 'Stimuli.csv',     // اسم دقیق فایل محرک‌ها در گیت‌هاب (حروف بزرگ/کوچک مهم است)
+  ATTENTION_FILE: 'Attention.csv', // اسم دقیق فایل سؤال‌های توجه
+  AUDIO_DIR: 'audio/',
+  IMAGE_DIR: 'images/',
+  N_BLOCKS: 2,
+  MIN_STIM_MS: 2500,   // حداقل مدت نمایش تصویر (اگر صوت بلندتر باشد تا پایان صوت می‌ماند)
+  ISI_MIN: 1000,       // ISI تصادفی بین ۱ تا ۴ ثانیه
+  ISI_MAX: 4000,
+  FEEDBACK_MS: 1500,   // مدت بازخورد سؤال توجه
+  RUN_TEST: true,      // مرحلهٔ آزمون پس از آموزش (انتخاب نام درست از بین هدف/رقیب/کنترل)
+  ENDPOINT: ''         // اختیاری: آدرس Google Apps Script برای ذخیرهٔ خودکار داده‌ها
+};
+/* ========================================================================================== */
+
+const app = document.getElementById('app');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const raf = () => new Promise(r => requestAnimationFrame(r));
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pad = v => String(v).trim().padStart(2, '0');
+const show = html => { app.innerHTML = html; };
+function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function cleanRow(r){ const o={}; for(const k in r) o[k.trim()] = typeof r[k]==='string' ? r[k].trim() : r[k]; return o; }
+
+function screen(html, label){
+  return new Promise(res=>{
+    show(html + `<p><button id="go">${label||'ادامه'}</button></p>`);
+    document.getElementById('go').onclick = () => res();
+  });
+}
+
+const rows = [];            // همهٔ داده‌ها
+let PID = '';
+const env = () => ({
+  input_type: matchMedia('(pointer:coarse)').matches ? 'touch' : 'mouse/keyboard',
+  screen_w: screen_w(), screen_h: screen_h()
+});
+function screen_w(){ return window.innerWidth; }
+function screen_h(){ return window.innerHeight; }
+
+function parseCSV(text){
+  text = text.replace(/^\ufeff/, '');
+  const first = text.split(/\r?\n/)[0];
+  const counts = {',':0, ';':0, '\t':0};
+  for(const ch of first) if(ch in counts) counts[ch]++;
+  const d = Object.keys(counts).sort((x,y)=>counts[y]-counts[x])[0];
+  const out = []; let row = [], cell = '', q = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=c; }
+    else if(c==='"') q = true;
+    else if(c===d){ row.push(cell); cell=''; }
+    else if(c==='\n' || c==='\r'){ if(c==='\r' && text[i+1]==='\n') i++; row.push(cell); out.push(row); row=[]; cell=''; }
+    else cell += c;
+  }
+  if(cell!=='' || row.length){ row.push(cell); out.push(row); }
+  const rows = out.filter(r => r.some(x => x.trim()!==''));
+  const head = rows[0].map(h => h.trim());
+  return rows.slice(1).map(r => { const o={}; head.forEach((h,i)=>{ o[h] = (r[i]===undefined ? '' : r[i]).trim(); }); return o; });
+}
+
+async function loadTable(file, sheetName){
+  const r = await fetch(file);
+  if(!r.ok) throw new Error(`فایل «${file}» در مخزن پیدا نشد. اسم و حروف بزرگ/کوچک را بررسی کنید.`);
+  if(/\.csv$/i.test(file)) return parseCSV(await r.text());
+  const wb = XLSX.read(await r.arrayBuffer(), {type:'array'});
+  const n = wb.SheetNames.find(x => x.trim().toLowerCase() === sheetName) || wb.SheetNames[0];
+  return XLSX.utils.sheet_to_json(wb.Sheets[n], {defval:'', raw:false}).map(cleanRow);
+}
+
+async function loadSheets(){
+  return {
+    stimuli:   await loadTable(CONFIG.STIMULI_FILE, 'stimuli'),
+    attention: await loadTable(CONFIG.ATTENTION_FILE, 'attention')
+  };
+}
+
+function checkColumns(list, cols, name){
+  if(!list || !list.length) throw new Error(`شیت «${name}» پیدا نشد یا خالی است.`);
+  const miss = cols.filter(c => !(c in list[0]));
+  if(miss.length) throw new Error(`در شیت «${name}» این سرستون‌ها پیدا نشد: ${miss.join('، ')}`);
+}
+
+function preload(stim){
+  const errs = [];
+  const jobs = stim.map(s => Promise.all([
+    new Promise(res=>{
+      const img = new Image();
+      img.onload = () => res();
+      img.onerror = () => { errs.push(CONFIG.IMAGE_DIR + s.image_file); res(); };
+      img.src = CONFIG.IMAGE_DIR + s.image_file; s.img = img;
+    }),
+    new Promise(res=>{
+      if(!s.test_image_file){ s.test_img = s.img; return res(); }
+      const t = new Image();
+      t.onload = () => res();
+      t.onerror = () => { errs.push(CONFIG.IMAGE_DIR + s.test_image_file); res(); };
+      t.src = CONFIG.IMAGE_DIR + s.test_image_file; s.test_img = t;
+    }),
+    new Promise(res=>{
+      const a = new Audio(); a.preload = 'auto';
+      const done = () => res();
+      a.addEventListener('canplaythrough', done, {once:true});
+      a.addEventListener('error', () => { errs.push(CONFIG.AUDIO_DIR + s.target_audio); res(); }, {once:true});
+      setTimeout(done, 10000);
+      a.src = CONFIG.AUDIO_DIR + s.target_audio; a.load(); s.audio = a;
+    })
+  ]));
+  return Promise.all(jobs).then(() => errs);
+}
+
+/* ---------- یک تریال آموزش: تصویر + صوت همزمان ---------- */
+async function trainingTrial(s, block, trialNo){
+  show('');                                   // صفحهٔ خالی = ISI
+  const isi = rnd(CONFIG.ISI_MIN, CONFIG.ISI_MAX);
+  await sleep(isi);
+  const img = s.img.cloneNode(); img.className = 'stim';
+  app.innerHTML = ''; app.appendChild(img);
+  await raf();                                // همگام با نرخ تازه‌سازی صفحه
+  const onset = performance.now();
+  const a = s.audio; a.currentTime = 0;
+  const ended = new Promise(r => { a.onended = r; setTimeout(r, 8000); });
+  try{ await a.play(); }catch(e){ console.warn('پخش صوت ناموفق', e); }
+  await Promise.all([ended, sleep(CONFIG.MIN_STIM_MS)]);
+  rows.push({participant:PID, phase:'training', block, trial:trialNo, item:s.item,
+    target_audio:s.target_audio, image_file:s.image_file, isi_ms:Math.round(isi),
+    onset_ms:Math.round(onset), duration_ms:Math.round(performance.now()-onset), ...env()});
+}
+
+/* ---------- سؤال توجه ---------- */
+function attentionQuestion(q, s, block){
+  return new Promise(res=>{
+    const img = s.img.cloneNode(); img.className = 'stim';
+    app.innerHTML = '';
+    app.appendChild(img);
+    app.insertAdjacentHTML('beforeend',
+      `<p class="big">${q.question_persian}</p><button id="y">بله</button><button id="n" class="alt">خیر</button>`);
+    requestAnimationFrame(()=>{
+      const t0 = performance.now();
+      const answer = async ans => {
+        const rt = performance.now() - t0;
+        const correct = ans === String(q.correct_answer).trim();
+        rows.push({participant:PID, phase:'attention', block, item:s.item, q_id:q.q_id,
+          response:ans, correct_answer:String(q.correct_answer).trim(), correct:correct?1:0,
+          rt_ms:Math.round(rt), ...env()});
+        show(`<p class="fb ${correct?'ok':'bad'}">${correct?'درست ✓':'نادرست ✗'}</p>`);
+        await sleep(CONFIG.FEEDBACK_MS);
+        res();
+      };
+      document.getElementById('y').onclick = () => answer('بله');
+      document.getElementById('n').onclick = () => answer('خیر');
+    });
+  });
+}
+
+/* ---------- مرحلهٔ آزمون: انتخاب نام درست (هدف / رقیب / کنترل) ---------- */
+function testTrial(s, ctrl, trialNo){
+  return new Promise(async res=>{
+    show(''); const isi = rnd(CONFIG.ISI_MIN, CONFIG.ISI_MAX); await sleep(isi);
+    const opts = shuffle([
+      {type:'target',     text:s.target_persian},
+      {type:'competitor', text:s.competitor_persian},
+      {type:'control',    text:ctrl.target_persian}
+    ]);
+    const img = (s.test_img || s.img).cloneNode(); img.className = 'stim';
+    app.innerHTML = ''; app.appendChild(img);
+    app.insertAdjacentHTML('beforeend', '<p>کدام نام درست است؟</p>' +
+      opts.map((o,i)=>`<button class="opt" data-i="${i}">${o.text}</button>`).join(''));
+    await raf();
+    const t0 = performance.now();
+    app.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+      const o = opts[+b.dataset.i];
+      rows.push({participant:PID, phase:'test', trial:trialNo, item:s.item,
+        choice_type:o.type, choice_text:o.text, correct:o.type==='target'?1:0,
+        control_item:ctrl.item, option_order:opts.map(x=>x.type).join('|'),
+        isi_ms:Math.round(isi), rt_ms:Math.round(performance.now()-t0), ...env()});
+      res();
+    });
+  });
+}
+
+/* ---------- ذخیرهٔ داده ---------- */
+function toCSV(){
+  const keys = []; rows.forEach(r => Object.keys(r).forEach(k => { if(!keys.includes(k)) keys.push(k); }));
+  const esc = v => { v = v===undefined||v===null ? '' : String(v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  return '\ufeff' + keys.join(',') + '\n' + rows.map(r => keys.map(k => esc(r[k])).join(',')).join('\n');
+}
+function download(){
+  const blob = new Blob([toCSV()], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `data_${PID}.csv`; a.click();
+}
+async function sendToServer(){
+  if(!CONFIG.ENDPOINT) return;
+  try{ await fetch(CONFIG.ENDPOINT, {method:'POST', mode:'no-cors', body: JSON.stringify({participant:PID, csv:toCSV()})}); }
+  catch(e){ console.warn('ارسال ناموفق', e); }
+}
+
+/* ---------- جریان اصلی ---------- */
+async function main(){
+  try{
+    const sheets = await loadSheets();
+    const stimRows = sheets['stimuli'], attRows = sheets['attention'];
+    checkColumns(stimRows, ['item','target_ipa','target_persian','target_audio','image_file','competitor_ipa','competitor_persian'], 'Stimuli');
+    checkColumns(attRows, ['q_id','item','block','question_persian','correct_answer'], 'Attention');
+
+    const stim = stimRows.filter(r => String(r.item).trim() !== '').map(r => ({...r, item: pad(r.item)}));
+    const att  = attRows.filter(r => String(r.q_id).trim() !== '').map(r => ({...r, item: pad(r.item), block: +r.block}));
+    const byItem = Object.fromEntries(stim.map(s => [s.item, s]));
+    if(CONFIG.RUN_TEST && stim.some(s => !s.test_image_file))
+      throw new Error('برای مرحلهٔ آزمون، ستون test_image_file باید در شیت Stimuli وجود داشته باشد و برای هر ۳۲ آیتم پر باشد.');
+
+    show('در حال بارگذاری تصاویر و فایل‌های صوتی…');
+    const missing = await preload(stim);
+    if(missing.length) throw new Error('این فایل‌ها پیدا نشدند (نام و پوشه را بررسی کنید): ' + missing.join('، '));
+
+    // شناسهٔ شرکت‌کننده
+    show(`<p class="big">به آزمون خوش آمدید</p><p>لطفاً کد شرکت‌کننده (یا نام) را وارد کنید:</p>
+          <p><input id="pid" type="text" autocomplete="off"></p><p><button id="go">شروع</button></p>`);
+    await new Promise(res => document.getElementById('go').onclick = () => {
+      const v = document.getElementById('pid').value.trim(); if(v){ PID = v; res(); }
+    });
+
+    await screen(`<p class="big">آموزش</p>
+      <p>در هر کوشش یک تصویر می‌بینید و همزمان یک صدا می‌شنوید. با دقت به تصویر و صدا توجه کنید.</p>
+      <p>گاهی دربارهٔ تصویری که دیدید یک سؤال بله/خیر پرسیده می‌شود.</p>
+      <p class="small">لطفاً هدفون بزنید و صدای دستگاه را تنظیم کنید.</p>`, 'شروع آموزش');
+
+    // آموزش: ۳ بلاک × ۳۲ تصویر، ترتیب تصادفی در هر بلاک
+    for(let b = 1; b <= CONFIG.N_BLOCKS; b++){
+      const order = shuffle(stim);
+      for(let i = 0; i < order.length; i++){
+        const s = order[i];
+        await trainingTrial(s, b, i+1);
+        const qs = att.filter(q => q.block === b && q.item === s.item);
+        for(const q of qs){ await attentionQuestion(q, s, b); }
+      }
+      if(b < CONFIG.N_BLOCKS)
+        await screen(`<p class="big">پایان بلاک ${b} از ${CONFIG.N_BLOCKS}</p><p>کمی استراحت کنید. وقتی آماده بودید ادامه دهید.</p>`);
+    }
+
+    // آزمون
+    if(CONFIG.RUN_TEST){
+      await screen(`<p class="big">مرحلهٔ آزمون</p>
+        <p>در هر کوشش یک تصویر و سه نام می‌بینید. نامی را که فکر می‌کنید مربوط به آن تصویر است انتخاب کنید.</p>`, 'شروع آزمون');
+      const order = shuffle(stim);
+      for(let i = 0; i < order.length; i++){
+        const s = order[i];
+        const others = stim.filter(x => x.item !== s.item);       // کنترل: هدف یکی از آیتم‌های دیگر
+        const ctrl = others[Math.floor(Math.random()*others.length)];
+        await testTrial(s, ctrl, i+1);
+      }
+    }
+
+    show('<p class="big">پایان آزمون. سپاسگزاریم!</p><p>در حال ذخیرهٔ داده‌ها…</p>');
+    await sendToServer();
+    download();
+    show(`<p class="big">پایان آزمون. سپاسگزاریم!</p>
+          <p>فایل داده به‌صورت خودکار دانلود شد. اگر دانلود نشد، دکمهٔ زیر را بزنید.</p>
+          <p><button id="dl">دانلود دادهٔ من</button></p>`);
+    document.getElementById('dl').onclick = download;
+  }catch(err){
+    show(`<p class="big bad">خطا</p><p>${err.message}</p>`);
+    console.error(err);
+  }
+}
+main();
+</script>
+</body>
+</html>

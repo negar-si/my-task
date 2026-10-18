@@ -1,0 +1,33 @@
+﻿item,target_ipa,target_latin,target_persian,target_audio,image_file,competitor_latin,competitor_ipa,competitor_persian,contrast,test_image_file
+1,/ta.nir/,tanir,تَنیر,01-tanir.wav,01-tanir.jpg,tamir,/ta.mir/,تَمیر,n/m,01-tanir-clean.jpg
+2,/ve.sɑm/,vesaam,وِسام,02-vesaam.wav,02-vesaam.jpg,vezaam,/vezɑm/,وِزام,z / s,02-vesaam-clean.jpg
+3,/za.ʃum/,zashum,زَشوم,03-zashum.wav,03-zashum.jpg,zazhum,/za.ʒum/,زَژوم,ʃ / ʒ,03-zashum-clean.jpg
+4,/va.tum/,vatum,وَتوم,04-vatum.wav,04-vatum.jpg,vadum,/va.dum/,وَدوم ,t / d,04-vatum-clean.jpg
+5,/me.fɑr/,mefaar,مِفار ,05-mefaar.wav,05-mefaar.jpg,mevaar,/me.vɑr/,مِوار,f / v,05-mefaar-clean.jpg
+6,/le.tʃɑb/,lechaab,لِچاب,06-lechaab.wav,06-lechaab.jpg,lejaab,/le.dʒɑb/,لِجاب ,tʃ / dʒ,06-lechaab-clean.jpg
+7,/re.moc/,remok,رِمُک,07-remok.wav,07-remok.jpg,renok,/re.moc/,رِنُک,m/n,07-remok-clean.jpg
+8,/ro.cɑʃ/,rokaash,رُکاش,08-rokaash.wav,08-rokaash.jpg,rogaash,/ro.ɟɑʃ/,رُگاش,c / ɟ,08-rokaash-clean.jpg
+9,/po.rim/,porim,پُریم,09-porim.wav,09-porim.jpg,polim,/po.lim/,پُلیم,r / l,09-porim-clean.jpg
+10,/ʒo.zɑb/,zhozaab,ژُزاب,10-zhozaab.wav,10-zhozaab.jpg,zhosaab,/ʒo.sɑb/,ژُساب,s / z,10-zhozaab-clean.jpg
+11,/fa.noʃ/,fanosh,فَنُش,11-fanosh.wav,11-fanosh.jpg,famosh,/fa.moʃ/,فَمُش,n / m,11-fanosh-clean.jpg
+12,/le.mɑf/,lemaaf,لِماف,12-lemaaf.wav,12-lemaaf.jpg,lenaaf,/le.nɑf/,لِناف,m/n,12-lemaaf-clean.jpg
+13,/co.pɑʃ/,kopaash,کُپاش,13-kopaash.wav,13-kopaash.jpg,kobaash,/co.bɑʃ/,کُباش,p / b,13-kopaash-clean.jpg
+14,/ma.loʃ/,malosh,مَلُش,14-malosh.wav,14-malosh.jpg,marosh,/ma.roʃ/,مَرُش,l / r,14-malosh-clean.jpg
+15,/ba.rɑf/,baraaf,بَراف,15-baraaf.wav,15-baraaf.jpg,balaaf,/ba.lɑf/,بَلاف,r/l,15-baraaf-clean.jpg
+16,/so.cɑb/,sokaab,سُکاب,16-sokaab.wav,16-sokaab.jpg,sogaab,/so.gɑb/,سُگاب,c / ɟ,16-sokaab-clean.jpg
+17,/ɟo.tʃid/,gochid,گُچید,17-gochid.wav,17-gochid.jpg,gojid,/ɟo.dʒid/,گُجید,tʃ / dʒ,17-gochid-clean.jpg
+18,/ne.zɑʃ/,nezaash,نِزاش,18-nezaash.wav,18-nezaash.jpg,nesaash,/ne.sɑʃ/,نِساش,z / s,18-nezaash-clean.jpg
+19,/pe.tɑm/,petaam,پِتام,19-petaam.wav,19-petaam.jpg,pedaam,/pe.dɑm/,پِدام,t / d,19-petaam-clean.jpg
+20,/ze.moʃ/,zemosh,زِمُش,20-zemosh.wav,20-zemosh.jpg,zenosh,/ze.noʃ/,زِنُش,m / n,20-zemosh-clean.jpg
+21,/ɟe.fɑb/,gefaab,گِفاب,21-gefaab.wav,21-gefaab.jpg,gevaab,/ɟe.vɑb/,گِواب,v / f,21-gefaab-clean.jpg
+22,/so.tɑʃ/,sotaash,سُتاش,22-sotaash.wav,22-sotaash.jpg,sodaash,/so.dɑʃ/,سُداش,d / t,22-sotaash-clean.jpg
+23,/ce.zum/,kezum,کِزوم,23-kezum.wav,23-kezum.jpg,kesum,/ce.sum/,کِسوم,z / s,23-kezum-clean.jpg
+24,/lo.ʃɑb/,loshaab,لُشاب,24-loshaab.wav,24-loshaab.jpg,lozhaab,/lo.ʒɑb/,لُژاب,ʃ / ʒ,24-loshaab-clean.jpg
+25,/da.lob/,dalob,دَلُب,25-dalob.wav,25-dalob.jpg,darob,/da.rob/,دَرُب,r / l,25-dalob-clean.jpg
+26,/ba.zum/,bazum,بَزوم,26-bazum.wav,26-bazum.jpg,basum,/ba.sum/,بَسوم ,z / s,26-bazum-clean.jpg
+27,/ʒe.pum/,zhepum,ژِپوم,27-zhepum.wav,27-zhepum.jpg,zhebum,/ʒe.bum/,ژِبوم,b / p,27-zhepum-clean.jpg
+28,/to.ʃid/,toshid,تُشید,28-toshid.wav,28-toshid.jpg,tozhid,/to.ʒid/,تُژید ,ʃ / ʒ,28-toshid-clean.jpg
+29,/pa.cɑf/,pacaash,پَکاف,29-pakaaf.wav,29-pakaaf.jpg,pagaash,/pa.ɟɑf/,پَگاف,ɟ/ c ,29-pakaaf-clean.jpg
+30,/pe.vɑʃ/,pevaash,پِواش,30-pevaash.wav,30-pevaash.jpg,pefaash,/pe.fɑʃ/,پِفاش,f / v,30-pevaash-clean.jpg
+31,/ro.dum/,rodum,رُدوم,31-rodum.wav,31-rodum.jpg,rotum,/ro.tum/,رُتوم,t / d,31-rodum-clean.jpg
+32,/ɟe.dʒɑf/,gejaaf,گِجاف,32-gejaaf.wav,32-gejaaf.jpg,gechaaf,/ɟe.tʃɑf/,گِچاف,tʃ / dʒ,32-gejaaf-clean.jpg
